@@ -9,7 +9,10 @@ repositories {
 
 dependencies {
     implementation("com.grack:nanojson:1.10")
-    implementation("org.ow2.asm:asm:9.8")
+
+    val asm = "9.8"
+    implementation("org.ow2.asm:asm:$asm")
+    implementation("org.ow2.asm:asm-commons:$asm")
 }
 
 java {
