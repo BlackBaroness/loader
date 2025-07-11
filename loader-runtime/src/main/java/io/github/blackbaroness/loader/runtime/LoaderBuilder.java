@@ -35,11 +35,11 @@ public class LoaderBuilder {
 
     public Loader build() {
         return new Loader(
-                directory,
-                manifestJson,
-                logger,
-                Objects.requireNonNullElse(relocations, Collections.emptyMap()),
-                removeUnusedJars
+            directory,
+            manifestJson,
+            logger,
+            Objects.requireNonNullElse(relocations, Collections.emptyMap()),
+            removeUnusedJars
         );
     }
 }

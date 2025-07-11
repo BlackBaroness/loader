@@ -1,5 +1,6 @@
 plugins {
     `java-library`
+    `maven-publish`
     id("io.freefair.lombok") version "8.14"
 }
 
@@ -20,3 +21,15 @@ java {
         languageVersion = JavaLanguageVersion.of(11)
     }
 }
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            from(components["java"])
+            groupId = rootProject.group as String
+            artifactId = "runtime"
+            version = rootProject.version as String
+        }
+    }
+}
+

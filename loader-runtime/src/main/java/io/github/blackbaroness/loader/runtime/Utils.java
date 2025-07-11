@@ -21,7 +21,7 @@ import java.util.Set;
 @UtilityClass
 class Utils {
 
-    private final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
+    private final char[] hexArray = "0123456789abcdef".toCharArray();
 
     @SneakyThrows
     public String sha1(Path path) {
@@ -53,10 +53,10 @@ class Utils {
     }
 
     @SneakyThrows
-    public String fetchString(HttpClient httpClient, String url) {
+    public String downloadString(HttpClient httpClient, String url) {
         final HttpResponse<String> response = httpClient.send(
-                HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
-                HttpResponse.BodyHandlers.ofString()
+            HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
+            HttpResponse.BodyHandlers.ofString()
         );
 
         validateResponse(response);
@@ -68,8 +68,8 @@ class Utils {
         Files.createDirectories(destination.getParent());
 
         final HttpResponse<Path> response = httpClient.send(
-                HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
-                HttpResponse.BodyHandlers.ofFile(destination, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
+            HttpRequest.newBuilder().uri(URI.create(url)).GET().build(),
+            HttpResponse.BodyHandlers.ofFile(destination, StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)
         );
 
         validateResponse(response);
@@ -99,8 +99,8 @@ class Utils {
         char[] hexChars = new char[bytes.length * 2];
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
-            hexChars[j * 2] = HEX_ARRAY[v >>> 4];
-            hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
+            hexChars[j * 2] = hexArray[v >>> 4];
+            hexChars[j * 2 + 1] = hexArray[v & 0x0F];
         }
         return new String(hexChars);
     }
@@ -108,8 +108,8 @@ class Utils {
     @SneakyThrows
     public void removeFilesFromDirectory(Path root, Set<Path> whitelist) {
         Set<Path> normalizedWhitelist = whitelist.stream()
-                .map(Path::normalize)
-                .collect(java.util.stream.Collectors.toSet());
+            .map(Path::normalize)
+            .collect(java.util.stream.Collectors.toSet());
 
         Files.walkFileTree(root, new SimpleFileVisitor<>() {
 

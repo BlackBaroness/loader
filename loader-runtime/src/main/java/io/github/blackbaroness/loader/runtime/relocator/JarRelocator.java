@@ -41,6 +41,8 @@ public final class JarRelocator {
             throw new IllegalStateException("#run has already been called on this instance");
         }
 
+        Files.createDirectories(this.output.getParent());
+
         try (JarOutputStream out = new JarOutputStream(new BufferedOutputStream(Files.newOutputStream(this.output)))) {
             out.setLevel(9);
             try (JarFile in = new JarFile(this.input.toFile())) {

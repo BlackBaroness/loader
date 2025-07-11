@@ -46,11 +46,16 @@ public class Loader {
         if (logger != null) logger.info("loading resolved dependencies...");
 
         final URL[] urls = Stream.concat(
-                extraUrls.stream(),
-                resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(Utils::toURL)
+            extraUrls.stream(),
+            resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(Utils::toURL)
         ).toArray(URL[]::new);
 
         return new URLClassLoader(urls, base);
+    }
+
+    @SneakyThrows
+    public void relocateJar(Path input, Path output) {
+        new JarRelocator(input, output, relocations).run();
     }
 
     @SneakyThrows
@@ -69,15 +74,15 @@ public class Loader {
         for (int i = 0; i < dependenciesArray.size(); i++) {
             final JsonObject dependencyObject = dependenciesArray.getObject(i);
             dependencies.add(
-                    new Manifest.Dependency(
-                            dependencyObject.getString("group"),
-                            dependencyObject.getString("artifact"),
-                            dependencyObject.getString("version"),
-                            dependencyObject.getString("classifier"),
-                            dependencyObject.getString("sha1"),
-                            directory,
-                            relocationsHash
-                    )
+                new Manifest.Dependency(
+                    dependencyObject.getString("group"),
+                    dependencyObject.getString("artifact"),
+                    dependencyObject.getString("version"),
+                    dependencyObject.getString("classifier"),
+                    dependencyObject.getString("sha1"),
+                    directory,
+                    relocationsHash
+                )
             );
         }
 
@@ -86,18 +91,18 @@ public class Loader {
 
     private Set<Manifest.Dependency> resolveDependencies(Manifest manifest) {
         httpClient = HttpClient.newBuilder()
-                .followRedirects(HttpClient.Redirect.ALWAYS)
-                .version(HttpClient.Version.HTTP_2)
-                .connectTimeout(Duration.ofSeconds(10))
-                .build();
+            .followRedirects(HttpClient.Redirect.ALWAYS)
+            .version(HttpClient.Version.HTTP_2)
+            .connectTimeout(Duration.ofSeconds(10))
+            .build();
 
+        final ProgressNotifier progressNotifier = new ProgressNotifier(logger, manifest.getDependencies().size());
         final ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
         final Collection<CompletableFuture<Manifest.Dependency>> tasks = manifest.getDependencies().stream()
-                .map(dependency -> resolveDependencyAsync(manifest, dependency, executor))
-                .collect(Collectors.toUnmodifiableList());
+            .map(dependency -> resolveDependencyAsync(manifest, dependency, executor, progressNotifier))
+            .collect(Collectors.toUnmodifiableList());
 
         final Set<Manifest.Dependency> resolvedDependencies = new LinkedHashSet<>();
-        final ProgressNotifier progressNotifier = new ProgressNotifier(logger, tasks.size());
         try {
             progressNotifier.start();
             tasks.forEach(task -> resolvedDependencies.add(task.join()));
@@ -110,8 +115,12 @@ public class Loader {
         return resolvedDependencies;
     }
 
-    private CompletableFuture<Manifest.Dependency> resolveDependencyAsync(Manifest manifest, Manifest.Dependency dependency, Executor executor) {
-        return CompletableFuture.supplyAsync(() -> resolveDependency(manifest, dependency), executor);
+    private CompletableFuture<Manifest.Dependency> resolveDependencyAsync(Manifest manifest, Manifest.Dependency dependency, Executor executor, ProgressNotifier progressNotifier) {
+        return CompletableFuture.supplyAsync(() -> {
+            final Manifest.Dependency result = resolveDependency(manifest, dependency);
+            progressNotifier.increment();
+            return result;
+        }, executor);
     }
 
     @SneakyThrows
@@ -139,7 +148,8 @@ public class Loader {
                 downloadDependency(dependency, repository);
                 return;
             } catch (Throwable t) {
-                errors.add(t);
+                final Exception exception = new RuntimeException("Failed to download " + dependency + " from repository " + repository, t);
+                errors.add(exception);
             }
         }
 
@@ -151,18 +161,19 @@ public class Loader {
     @SneakyThrows
     private void downloadDependency(Manifest.Dependency dependency, String repository) {
         // check is repository has a valid jar
-        final String remoteHash = Utils.fetchString(httpClient, dependency.toJarSha1HttpUrl(repository));
+        final String remoteHash = Utils.downloadString(httpClient, dependency.toJarSha1HttpUrl(repository));
         if (!remoteHash.equals(dependency.getSha1()))
             throw new IllegalStateException("Repository " + repository + " returned invalid sha1 for dependency " + dependency);
 
         // download a new jar and validate it
         final Path temporaryFile = Files.createTempFile(dependency.getGroupId(), dependency.getArtifactId());
-        Utils.downloadFile(dependency.toJarHttpUrl(repository), temporaryFile, httpClient);
+        final String downloadUrl = dependency.toJarHttpUrl(repository);
+        Utils.downloadFile(downloadUrl, temporaryFile, httpClient);
         if (!Objects.equals(Utils.sha1(temporaryFile), remoteHash))
-            throw new IllegalStateException("Downloaded file of " + dependency + " has invalid sha1");
+            throw new IllegalStateException("File " + temporaryFile.toAbsolutePath() + " downloaded from " + downloadUrl + " to resolve " + dependency + " has invalid sha1");
 
         // perform relocation
-        new JarRelocator(temporaryFile, dependency.getJarFile(), relocations).run();
+        relocateJar(temporaryFile, dependency.getJarFile());
         Files.deleteIfExists(temporaryFile);
 
         // save new checksum
@@ -171,10 +182,10 @@ public class Loader {
 
     private void removeUnusedJars(Set<Manifest.Dependency> resolvedDependencies) {
         Utils.removeFilesFromDirectory(
-                directory,
-                resolvedDependencies.stream()
-                        .flatMap(it -> Stream.of(it.getJarFile(), it.getJarSha1File()))
-                        .collect(Collectors.toUnmodifiableSet())
+            directory,
+            resolvedDependencies.stream()
+                .flatMap(it -> Stream.of(it.getJarFile(), it.getJarSha1File()))
+                .collect(Collectors.toUnmodifiableSet())
         );
     }
 }

@@ -24,7 +24,7 @@ public class Manifest {
         Path jarFile;
         Path jarSha1File;
 
-        public Dependency(String groupId, String artifactId, String version, String sha1, String classifier, Path directory, String relocationsHash) {
+        public Dependency(String groupId, String artifactId, String version, String classifier, String sha1, Path directory, String relocationsHash) {
             this.groupId = groupId;
             this.artifactId = artifactId;
             this.version = version;
@@ -34,16 +34,16 @@ public class Manifest {
             this.versionWithClassifier = version + (classifier == null ? "" : ("-" + classifier));
 
             this.jarFile = directory
-                    .resolve(groupId)
-                    .resolve(artifactId)
-                    .resolve(versionWithClassifier)
-                    .resolve(sha1 + "-" + relocationsHash + ".jar");
+                .resolve(groupId)
+                .resolve(artifactId)
+                .resolve(versionWithClassifier)
+                .resolve(sha1 + "-" + relocationsHash + ".jar");
 
             this.jarSha1File = jarFile.resolveSibling(jarFile.getFileName() + ".sha1");
         }
 
         public String toJarHttpUrl(String baseUrl) {
-            return baseUrl + '/' + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + versionWithClassifier + ".jar";
+            return Utils.normalizeUrl(baseUrl) + '/' + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + versionWithClassifier + ".jar";
         }
 
         public String toJarSha1HttpUrl(String baseUrl) {
@@ -52,7 +52,13 @@ public class Manifest {
 
         @Override
         public String toString() {
-            return groupId + ":" + artifactId + ":" + version + versionWithClassifier;
+            return "Dependency{" +
+                "groupId='" + groupId + '\'' +
+                ", artifactId='" + artifactId + '\'' +
+                ", version='" + version + '\'' +
+                ", classifier='" + classifier + '\'' +
+                ", sha1='" + sha1 + '\'' +
+                '}';
         }
     }
 }

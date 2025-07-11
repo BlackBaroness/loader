@@ -29,6 +29,10 @@ public class ProgressNotifier extends Thread {
         }
     }
 
+    public void increment() {
+        completed.incrementAndGet();
+    }
+
     private String getEta() {
         final int completed = this.completed.get();
         if (completed == 0) return "-";
