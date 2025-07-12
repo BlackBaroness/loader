@@ -22,10 +22,11 @@ public class ProgressNotifier extends Thread {
 
         try {
             while (true) {
-                logger.info("preparing dependencies " + completed.get() + "/" + total + " (ETA: " + getEta() + ")");
+                logger.info("Loader: preparing dependencies " + completed.get() + "/" + total + " (ETA: " + getEta() + ")");
                 Thread.sleep(500);
             }
         } catch (InterruptedException ignored) {
+            logger.info("Loader: prepared dependencies " + completed.get() + "/" + total);
         }
     }
 

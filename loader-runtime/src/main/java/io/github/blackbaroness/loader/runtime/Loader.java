@@ -43,7 +43,7 @@ public class Loader {
     }
 
     public URLClassLoader loadToNewClassLoader(ClassLoader base, Collection<URL> extraUrls) {
-        if (logger != null) logger.info("loading resolved dependencies...");
+        if (logger != null) logger.info("Loader: creating isolated class loader...");
 
         final URL[] urls = Stream.concat(
             extraUrls.stream(),
