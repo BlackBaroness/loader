@@ -3,6 +3,7 @@ package io.github.blackbaroness.loader.runtime;
 import lombok.Value;
 
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 
 @Value
@@ -10,6 +11,7 @@ public class Manifest {
 
     Set<String> repositories;
     Set<Dependency> dependencies;
+    Map<String, String> relocations;
 
     @Value
     public static class Dependency {

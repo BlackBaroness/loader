@@ -5,7 +5,6 @@ import com.grack.nanojson.JsonObject;
 import com.grack.nanojson.JsonParser;
 import io.github.blackbaroness.loader.runtime.relocator.JarRelocator;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
 import java.net.URL;
@@ -23,22 +22,27 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-@RequiredArgsConstructor
 public class Loader {
 
     private final Path directory;
-    private final String manifestJson;
     private final Logger logger;
-    private final Map<String, String> relocations;
     private final boolean removeUnusedJars;
+    private final Manifest manifest;
 
     private HttpClient httpClient;
 
     @Getter
     private Set<Manifest.Dependency> resolvedDependencies;
 
+    public Loader(Path directory, String manifestJson, Logger logger, boolean removeUnusedJars) {
+        this.directory = directory;
+        this.logger = logger;
+        this.removeUnusedJars = removeUnusedJars;
+        this.manifest = loadManifest(manifestJson);
+    }
+
     public void prepare() {
-        resolvedDependencies = resolveDependencies(loadManifest());
+        resolvedDependencies = resolveDependencies();
         if (removeUnusedJars) removeUnusedJars(resolvedDependencies);
     }
 
@@ -46,8 +50,8 @@ public class Loader {
         if (logger != null) logger.info("Loader: creating isolated class loader...");
 
         final URL[] urls = Stream.concat(
-            extraUrls.stream(),
-            resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(Utils::toURL)
+            resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(Utils::toURL),
+            extraUrls.stream()
         ).toArray(URL[]::new);
 
         return new URLClassLoader(urls, base);
@@ -55,17 +59,22 @@ public class Loader {
 
     @SneakyThrows
     public void relocateJar(Path input, Path output) {
-        new JarRelocator(input, output, relocations).run();
+        new JarRelocator(input, output, manifest.getRelocations()).run();
     }
 
     @SneakyThrows
-    private Manifest loadManifest() {
+    private Manifest loadManifest(String manifestJson) {
         final JsonObject root = JsonParser.object().from(manifestJson);
 
         final JsonArray repositoriesArray = root.getArray("repositories");
         final Set<String> repositories = new LinkedHashSet<>(repositoriesArray.size());
         for (int i = 0; i < repositoriesArray.size(); i++) {
             repositories.add(repositoriesArray.getString(i));
+        }
+
+        final Map<String, String> relocations = new LinkedHashMap<>();
+        for (final Map.Entry<String, Object> entry : root.getObject("relocations").entrySet()) {
+            relocations.put(entry.getKey(), entry.getValue().toString());
         }
 
         final String relocationsHash = Utils.sha1(relocations);
@@ -86,10 +95,10 @@ public class Loader {
             );
         }
 
-        return new Manifest(repositories, dependencies);
+        return new Manifest(repositories, dependencies, relocations);
     }
 
-    private Set<Manifest.Dependency> resolveDependencies(Manifest manifest) {
+    private Set<Manifest.Dependency> resolveDependencies() {
         httpClient = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .version(HttpClient.Version.HTTP_2)
@@ -99,7 +108,7 @@ public class Loader {
         final ProgressNotifier progressNotifier = new ProgressNotifier(logger, manifest.getDependencies().size());
         final ExecutorService executor = Executors.newFixedThreadPool(Math.max(1, Runtime.getRuntime().availableProcessors() / 2));
         final Collection<CompletableFuture<Manifest.Dependency>> tasks = manifest.getDependencies().stream()
-            .map(dependency -> resolveDependencyAsync(manifest, dependency, executor, progressNotifier))
+            .map(dependency -> resolveDependencyAsync(dependency, executor, progressNotifier))
             .collect(Collectors.toUnmodifiableList());
 
         final Set<Manifest.Dependency> resolvedDependencies = new LinkedHashSet<>();
@@ -115,32 +124,32 @@ public class Loader {
         return resolvedDependencies;
     }
 
-    private CompletableFuture<Manifest.Dependency> resolveDependencyAsync(Manifest manifest, Manifest.Dependency dependency, Executor executor, ProgressNotifier progressNotifier) {
+    private CompletableFuture<Manifest.Dependency> resolveDependencyAsync(Manifest.Dependency dependency, Executor executor, ProgressNotifier progressNotifier) {
         return CompletableFuture.supplyAsync(() -> {
-            final Manifest.Dependency result = resolveDependency(manifest, dependency);
+            final Manifest.Dependency result = resolveDependency(dependency);
             progressNotifier.increment();
             return result;
         }, executor);
     }
 
     @SneakyThrows
-    private Manifest.Dependency resolveDependency(Manifest manifest, Manifest.Dependency dependency) {
+    private Manifest.Dependency resolveDependency(Manifest.Dependency dependency) {
         if (!Files.exists(dependency.getJarFile()) || !Files.exists(dependency.getJarSha1File())) {
-            downloadDependency(manifest, dependency);
+            downloadDependency(dependency);
             return dependency;
         }
 
         final String expectedHash = Files.readString(dependency.getJarSha1File());
         final String actualHash = Utils.sha1(dependency.getJarFile());
         if (!expectedHash.equals(actualHash)) {
-            downloadDependency(manifest, dependency);
+            downloadDependency(dependency);
         }
 
         return dependency;
     }
 
     @SneakyThrows
-    private void downloadDependency(Manifest manifest, Manifest.Dependency dependency) {
+    private void downloadDependency(Manifest.Dependency dependency) {
         final List<Throwable> errors = new ArrayList<>(manifest.getRepositories().size());
 
         for (final String repository : manifest.getRepositories()) {

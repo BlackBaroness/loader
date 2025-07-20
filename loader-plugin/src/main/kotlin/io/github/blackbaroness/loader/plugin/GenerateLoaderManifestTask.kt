@@ -8,7 +8,9 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
@@ -25,8 +27,15 @@ abstract class GenerateLoaderManifestTask : DefaultTask() {
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
+    @get:Input
+    abstract val relocations: MapProperty<String, String>
+
     @get:Internal
     abstract val runtimeLibrary: Property<Configuration>
+
+    init {
+        relocations.convention(emptyMap())
+    }
 
     @TaskAction
     fun generate() {
@@ -39,14 +48,16 @@ abstract class GenerateLoaderManifestTask : DefaultTask() {
         println("Generated libraries manifest at: ${manifestFile.absolutePathString()}")
     }
 
-    private fun generateManifest(): Map<String, Collection<Any>> = mapOf(
+    private fun generateManifest(): Map<String, Any> = mapOf(
         "repositories" to generateRepositories(),
         "dependencies" to generateDependencies(),
+        "relocations" to relocations.get()
     )
 
     private fun generateRepositories(): Collection<String> = buildSet {
         for (repository in project.repositories) {
             if (repository !is MavenArtifactRepository) continue
+            if (repository.url.scheme == "file") continue
             this += repository.url.toString()
         }
     }
