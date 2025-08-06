@@ -11,8 +11,14 @@ public class LoaderBuilder {
     private final Path directory;
     private final String manifestJson;
 
+    private Path tempDirectory;
     private Logger logger;
     private boolean removeUnusedJars = true;
+
+    public LoaderBuilder setTempDirectory(Path tempDirectory) {
+        this.tempDirectory = tempDirectory;
+        return this;
+    }
 
     public LoaderBuilder setLogger(Logger logger) {
         this.logger = logger;
@@ -27,6 +33,7 @@ public class LoaderBuilder {
     public Loader build() {
         return new Loader(
             directory,
+            tempDirectory,
             manifestJson,
             logger,
             removeUnusedJars

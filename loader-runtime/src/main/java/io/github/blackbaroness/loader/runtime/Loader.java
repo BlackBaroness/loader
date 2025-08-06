@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 public class Loader {
 
     private final Path directory;
+    private final Path tempDirectory;
     private final Logger logger;
     private final boolean removeUnusedJars;
     private final Manifest manifest;
@@ -34,8 +35,9 @@ public class Loader {
     @Getter
     private Set<Manifest.Dependency> resolvedDependencies;
 
-    public Loader(Path directory, String manifestJson, Logger logger, boolean removeUnusedJars) {
+    public Loader(Path directory, Path tempDirectory, String manifestJson, Logger logger, boolean removeUnusedJars) {
         this.directory = directory;
+        this.tempDirectory = tempDirectory;
         this.logger = logger;
         this.removeUnusedJars = removeUnusedJars;
         this.manifest = loadManifest(manifestJson);
@@ -170,12 +172,12 @@ public class Loader {
     @SneakyThrows
     private void downloadDependency(Manifest.Dependency dependency, String repository) {
         // check is repository has a valid jar
-        final String remoteHash = Utils.downloadString(httpClient, dependency.toJarSha1HttpUrl(repository));
+        final String remoteHash = Utils.downloadString(httpClient, dependency.toJarSha1HttpUrl(repository)).trim().split(" ")[0];
         if (!remoteHash.equals(dependency.getSha1()))
-            throw new IllegalStateException("Repository " + repository + " returned invalid sha1 for dependency " + dependency);
+            throw new IllegalStateException("Repository " + repository + " returned invalid sha1 '" + remoteHash + "' for dependency " + dependency);
 
         // download a new jar and validate it
-        final Path temporaryFile = Files.createTempFile(dependency.getGroupId(), dependency.getArtifactId());
+        final Path temporaryFile = createTempFile(dependency.getGroupId(), dependency.getArtifactId());
         final String downloadUrl = dependency.toJarHttpUrl(repository);
         Utils.downloadFile(downloadUrl, temporaryFile, httpClient);
         if (!Objects.equals(Utils.sha1(temporaryFile), remoteHash))
@@ -196,5 +198,13 @@ public class Loader {
                 .flatMap(it -> Stream.of(it.getJarFile(), it.getJarSha1File()))
                 .collect(Collectors.toUnmodifiableSet())
         );
+    }
+
+    @SneakyThrows
+    private Path createTempFile(String prefix, String suffix) {
+        if (tempDirectory == null)
+            return Files.createTempFile(prefix, suffix);
+
+        return Files.createTempFile(tempDirectory, prefix, suffix);
     }
 }
