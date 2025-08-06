@@ -35,12 +35,16 @@ public class Loader {
     @Getter
     private Set<Manifest.Dependency> resolvedDependencies;
 
+    @SneakyThrows
     public Loader(Path directory, Path tempDirectory, String manifestJson, Logger logger, boolean removeUnusedJars) {
         this.directory = directory;
         this.tempDirectory = tempDirectory;
         this.logger = logger;
         this.removeUnusedJars = removeUnusedJars;
         this.manifest = loadManifest(manifestJson);
+
+        Utils.removeFilesFromDirectory(tempDirectory, Collections.emptySet());
+        Files.createDirectories(tempDirectory);
     }
 
     public void prepare() {
