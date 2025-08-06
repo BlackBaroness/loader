@@ -107,6 +107,8 @@ class Utils {
 
     @SneakyThrows
     public void removeFilesFromDirectory(Path root, Set<Path> whitelist) {
+        if (!Files.exists(root)) return;
+
         Set<Path> normalizedWhitelist = whitelist.stream()
             .map(Path::normalize)
             .collect(java.util.stream.Collectors.toSet());
