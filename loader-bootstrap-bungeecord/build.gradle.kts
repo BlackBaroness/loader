@@ -7,12 +7,13 @@ plugins {
 
 repositories {
     mavenCentral()
+    maven("https://libraries.minecraft.net")
 }
 
 dependencies {
-    implementation(libs.nanojson)
-    implementation(libs.asm.main)
-    implementation(libs.asm.commons)
+    api(projects.loaderRuntime)
+    api(projects.loaderBootstrap)
+    compileOnly(libs.bungeecord)
 }
 
 java {
@@ -24,10 +25,10 @@ java {
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
-    coordinates("io.github.blackbaroness", "loader-runtime", rootProject.version.toString())
+    coordinates("io.github.blackbaroness", "loader-bootstrap-bungeecord", rootProject.version.toString())
 
     pom {
-        name.set("Loader (Runtime)")
+        name.set("Loader (BungeeCord Bootstrap)")
         description.set("A simple tool that helps your JVM project download, relocate, verify and load your dependencies at runtime.")
         inceptionYear.set("2025")
         url.set("https://github.com/BlackBaroness/loader")

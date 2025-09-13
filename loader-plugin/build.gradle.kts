@@ -2,7 +2,7 @@ plugins {
     `java-gradle-plugin`
     `kotlin-dsl`
     `maven-publish`
-    kotlin("jvm") version "2.2.0"
+    alias(libs.plugins.kotlin.jvm)
 }
 
 repositories {
@@ -22,12 +22,13 @@ gradlePlugin {
 
     plugins {
         create("loader-plugin") {
-            id = "${rootProject.group}.plugin"
+            id = "${rootProject.group}.loader.plugin"
             version = rootProject.version
             implementationClass = "io.github.blackbaroness.loader.plugin.LoaderPlugin"
-            displayName = "Loader plugin"
-            description = "A plugin to generate a manifest for BlackBaroness/loader-runtime"
-            tags.set(setOf("dependency", "manifest", "loader"))
+            displayName = "Loader (Plugin)"
+            description =
+                "A simple tool that helps your JVM project download, relocate, verify and load your dependencies at runtime."
+            tags.set(setOf("dependency", "manifest", "loader", "classpath"))
         }
     }
 }

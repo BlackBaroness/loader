@@ -10,9 +10,7 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.nanojson)
-    implementation(libs.asm.main)
-    implementation(libs.asm.commons)
+    api(projects.loaderRuntime)
 }
 
 java {
@@ -24,10 +22,10 @@ java {
 mavenPublishing {
     publishToMavenCentral()
     signAllPublications()
-    coordinates("io.github.blackbaroness", "loader-runtime", rootProject.version.toString())
+    coordinates("io.github.blackbaroness", "loader-bootstrap", rootProject.version.toString())
 
     pom {
-        name.set("Loader (Runtime)")
+        name.set("Loader (Boostrap)")
         description.set("A simple tool that helps your JVM project download, relocate, verify and load your dependencies at runtime.")
         inceptionYear.set("2025")
         url.set("https://github.com/BlackBaroness/loader")

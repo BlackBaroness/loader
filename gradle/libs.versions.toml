@@ -1,0 +1,15 @@
+[versions]
+kotlin = "2.2.20"
+asm = "9.8"
+
+[libraries]
+nanojson = { module = "com.grack:nanojson", version = "1.10" }
+asm-main = { module = "org.ow2.asm:asm", version.ref = "asm" }
+asm-commons = { module = "org.ow2.asm:asm-commons", version.ref = "asm" }
+bungeecord = { module = "net.md-5:bungeecord-api", version = "1.21-R0.3" }
+bukkit = { module = "com.destroystokyo.paper:paper-api", version = "1.12.2-R0.1-SNAPSHOT" }
+
+[plugins]
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+lombok = { id = "io.freefair.lombok", version = "9.0.0-rc2" }
+publish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
