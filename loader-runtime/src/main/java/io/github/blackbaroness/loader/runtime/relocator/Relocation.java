@@ -12,8 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Original file from: https://github.com/lucko/jar-relocator
+ * Modifications made by https://github.com/BlackBaroness/loader/.
  */
-
 package io.github.blackbaroness.loader.runtime.relocator;
 
 import java.util.Collection;
@@ -69,7 +71,7 @@ public final class Relocation {
      * @param relocatedPattern the pattern to relocate to
      */
     public Relocation(String pattern, String relocatedPattern) {
-        this(pattern, relocatedPattern, Collections.<String>emptyList(), Collections.<String>emptyList());
+        this(pattern, relocatedPattern, Collections.emptyList(), Collections.emptyList());
     }
 
     private static Set<String> normalizePatterns(Collection<String> patterns) {

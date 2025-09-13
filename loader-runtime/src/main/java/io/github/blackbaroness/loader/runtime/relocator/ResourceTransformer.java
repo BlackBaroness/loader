@@ -12,8 +12,10 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Original file from: https://github.com/lucko/jar-relocator
+ * Modifications made by https://github.com/BlackBaroness/loader/.
  */
-
 package io.github.blackbaroness.loader.runtime.relocator;
 
 import java.io.IOException;

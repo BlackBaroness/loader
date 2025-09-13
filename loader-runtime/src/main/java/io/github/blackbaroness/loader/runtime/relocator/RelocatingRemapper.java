@@ -12,10 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Original file from: https://github.com/lucko/jar-relocator
+ * Modifications made by https://github.com/BlackBaroness/loader/.
  */
-
 package io.github.blackbaroness.loader.runtime.relocator;
 
+import lombok.Getter;
 import org.objectweb.asm.commons.Remapper;
 
 import java.util.Collection;
@@ -25,6 +28,7 @@ import java.util.regex.Pattern;
 /**
  * Remaps class names and types using defined {@link Relocation} rules.
  */
+@Getter
 final class RelocatingRemapper extends Remapper {
     private static final Pattern CLASS_PATTERN = Pattern.compile("(\\[*)?L(.+);");
 
@@ -35,10 +39,6 @@ final class RelocatingRemapper extends Remapper {
 
     RelocatingRemapper(Collection<Relocation> rules) {
         this.rules = rules;
-    }
-
-    public Collection<Relocation> getRules() {
-        return this.rules;
     }
 
     @Override
