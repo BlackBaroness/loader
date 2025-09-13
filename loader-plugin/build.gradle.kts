@@ -1,7 +1,6 @@
 plugins {
-    `java-gradle-plugin`
+    id("com.gradle.plugin-publish") version "2.0.0"
     `kotlin-dsl`
-    `maven-publish`
     alias(libs.plugins.kotlin.jvm)
 }
 
