@@ -1,5 +1,6 @@
 package io.github.blackbaroness.loader.runtime;
 
+import com.grack.nanojson.JsonWriter;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
@@ -15,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import java.util.Set;
 
@@ -25,7 +27,7 @@ class Utils {
 
     @SneakyThrows
     public String sha1(Path path) {
-        MessageDigest digest = MessageDigest.getInstance("SHA-1");
+        final MessageDigest digest = createSha1Digest();
         try (SeekableByteChannel seekableByteChannel = Files.newByteChannel(path)) {
             final ByteBuffer buffer = ByteBuffer.allocate(1024 * 8);
             while (seekableByteChannel.read(buffer) > 0) {
@@ -39,17 +41,13 @@ class Utils {
     }
 
     @SneakyThrows
+    public String sha1(String str) {
+        return bytesToHex(createSha1Digest().digest(str.getBytes(StandardCharsets.UTF_8)));
+    }
+
+    @SneakyThrows
     public String sha1(Map<String, String> map) {
-        final byte[] delimiter = new byte[]{0x16, 0x32, 0x48, 0x64};
-        final MessageDigest digest = MessageDigest.getInstance("SHA-1");
-
-        map.forEach((from, to) -> {
-            digest.update(from.getBytes(StandardCharsets.UTF_8));
-            digest.update(to.getBytes(StandardCharsets.UTF_8));
-            digest.update(delimiter);
-        });
-
-        return bytesToHex(digest.digest());
+        return sha1(JsonWriter.string().object(map).done());
     }
 
     @SneakyThrows
@@ -137,5 +135,13 @@ class Utils {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    private MessageDigest createSha1Digest() {
+        try {
+            return MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
