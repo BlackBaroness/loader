@@ -66,7 +66,7 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     private URLClassLoader createClassLoader() {
-        final String manifestJson = readManifestJson();
+        final String manifestJson = readManifestJson(currentJarPath);
 
         final Loader loader = new LoaderBuilder(librariesDirectory, manifestJson)
             .setLogger(logger)
@@ -83,12 +83,12 @@ public abstract class LoaderBootstrap {
         return loader.loadToNewClassLoader(classLoader, List.of(relocatedJar.toUri().toURL()));
     }
 
-    private String readManifestJson() throws IOException {
+    private String readManifestJson(Path path) throws IOException {
         final String fileName = "loader-manifest.json";
-        try (final JarFile jarFile = new JarFile(currentJarPath.toFile())) {
+        try (final JarFile jarFile = new JarFile(path.toFile())) {
             final ZipEntry entry = jarFile.getEntry(fileName);
             if (entry == null)
-                throw new NoSuchFileException(fileName + " not found in " + currentJarPath.toAbsolutePath());
+                throw new NoSuchFileException(fileName + " not found in " + path.toAbsolutePath());
 
             try (final InputStream inputStream = jarFile.getInputStream(entry)) {
                 return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
@@ -99,11 +99,7 @@ public abstract class LoaderBootstrap {
     @SneakyThrows
     private Path createJarCopyOfCurrentJar() {
         final Path path = createTempJar(tempDirectory);
-        Files.copy(
-            currentJarPath,
-            path,
-            StandardCopyOption.REPLACE_EXISTING
-        );
+        Files.copy(currentJarPath, path, StandardCopyOption.REPLACE_EXISTING);
         return path;
     }
 
