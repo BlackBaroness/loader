@@ -10,7 +10,6 @@ import java.lang.reflect.Method;
 import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Objects;
@@ -23,16 +22,18 @@ public abstract class LoaderBootstrap {
     private final Logger logger;
     private final String mainClassName;
     private final ClassLoader classLoader;
+    private final Path currentJarPath;
 
     @Getter
     private Object mainInstance;
 
-    public LoaderBootstrap(Path librariesDirectory, Path tempDirectory, Logger logger, String mainClassName, ClassLoader classLoader) {
+    public LoaderBootstrap(Path librariesDirectory, Path tempDirectory, Logger logger, String mainClassName, ClassLoader classLoader, Path currentJarPath) {
         this.librariesDirectory = librariesDirectory;
         this.tempDirectory = tempDirectory;
         this.logger = logger;
         this.mainClassName = mainClassName;
         this.classLoader = classLoader;
+        this.currentJarPath = currentJarPath;
     }
 
     @SneakyThrows
@@ -85,7 +86,7 @@ public abstract class LoaderBootstrap {
         final Path tempLocation = Files.createTempFile(null, ".jar");
 
         Files.copy(
-            Paths.get(getClass().getProtectionDomain().getCodeSource().getLocation().toURI()),
+            currentJarPath,
             tempLocation,
             StandardCopyOption.REPLACE_EXISTING
         );

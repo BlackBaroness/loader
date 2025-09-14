@@ -8,12 +8,14 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public abstract class LoaderBukkitPluginBootstrap extends JavaPlugin {
 
     private final LoaderBootstrap bootstrap;
     private Throwable loadException = null;
 
+    @SneakyThrows
     protected LoaderBukkitPluginBootstrap() {
         final Plugin plugin = this;
         this.bootstrap = new LoaderBootstrap(
@@ -21,7 +23,8 @@ public abstract class LoaderBukkitPluginBootstrap extends JavaPlugin {
             getTempDirectory(),
             getLogger(),
             getMainClass().getName(),
-            Server.class.getClassLoader()
+            Server.class.getClassLoader(),
+            Paths.get(getMainClass().getProtectionDomain().getCodeSource().getLocation().toURI())
         ) {
             @SneakyThrows
             @Override

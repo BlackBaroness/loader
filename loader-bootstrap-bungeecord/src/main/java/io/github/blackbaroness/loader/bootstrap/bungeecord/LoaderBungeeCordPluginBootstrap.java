@@ -7,12 +7,14 @@ import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.plugin.Plugin;
 
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public abstract class LoaderBungeeCordPluginBootstrap extends Plugin {
 
     private final LoaderBootstrap bootstrap;
     private Throwable loadException = null;
 
+    @SneakyThrows
     protected LoaderBungeeCordPluginBootstrap() {
         final Plugin plugin = this;
         this.bootstrap = new LoaderBootstrap(
@@ -20,7 +22,8 @@ public abstract class LoaderBungeeCordPluginBootstrap extends Plugin {
             getTempDirectory(),
             getLogger(),
             getMainClass().getName(),
-            ProxyServer.class.getClassLoader()
+            ProxyServer.class.getClassLoader(),
+            Paths.get(getMainClass().getProtectionDomain().getCodeSource().getLocation().toURI())
         ) {
             @SneakyThrows
             @Override
