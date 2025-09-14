@@ -71,26 +71,36 @@ public abstract class LoaderBootstrap {
             .setTempDirectory(tempDirectory)
             .build();
 
-        final Path notRelocatedJarCopy = createJarCopy();
-        final Path finalJar = Files.createTempFile(null, ".jar");
-        finalJar.toFile().deleteOnExit();
-        loader.relocateJar(notRelocatedJarCopy, finalJar);
-        Files.deleteIfExists(notRelocatedJarCopy);
+        final Path originalJar = createJarCopy();
+        final Path relocatedJar = createTempJar(tempDirectory);
+        loader.relocateJar(originalJar, relocatedJar);
+        Files.deleteIfExists(originalJar);
 
         loader.prepare();
-        return loader.loadToNewClassLoader(classLoader, List.of(finalJar.toUri().toURL()));
+        return loader.loadToNewClassLoader(classLoader, List.of(relocatedJar.toUri().toURL()));
     }
 
     @SneakyThrows
     private Path createJarCopy() {
-        final Path tempLocation = Files.createTempFile(null, ".jar");
-
+        final Path path = createTempJar(tempDirectory);
         Files.copy(
             currentJarPath,
-            tempLocation,
+            path,
             StandardCopyOption.REPLACE_EXISTING
         );
+        return path;
+    }
 
-        return tempLocation;
+    @SneakyThrows
+    private Path createTempJar(Path directory) {
+        final Path path;
+        if (directory == null) {
+            path = Files.createTempFile(null, ".jar");
+        } else {
+            path = Files.createTempFile(directory, null, ".jar");
+        }
+
+        path.toFile().deleteOnExit();
+        return path;
     }
 }
