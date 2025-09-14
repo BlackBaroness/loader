@@ -5,15 +5,19 @@ import io.github.blackbaroness.loader.runtime.LoaderBuilder;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Method;
 import java.net.URLClassLoader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
-import java.util.Objects;
+import java.util.jar.JarFile;
 import java.util.logging.Logger;
+import java.util.zip.ZipEntry;
 
 public abstract class LoaderBootstrap {
 
@@ -23,6 +27,9 @@ public abstract class LoaderBootstrap {
     private final String mainClassName;
     private final ClassLoader classLoader;
     private final Path currentJarPath;
+
+    @Getter
+    private URLClassLoader createdClassLoader;
 
     @Getter
     private Object mainInstance;
@@ -38,9 +45,8 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     public void createMainInstance() {
-        //noinspection resource
-        final URLClassLoader classLoader = createClassLoader();
-        final Class<?> mainClass = classLoader.loadClass(mainClassName);
+        createdClassLoader = createClassLoader();
+        final Class<?> mainClass = createdClassLoader.loadClass(mainClassName);
         this.mainInstance = createMainInstance0(mainClass);
     }
 
@@ -60,28 +66,38 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     private URLClassLoader createClassLoader() {
-        final String manifestJson;
-        try (final InputStream inputStream = getClass().getClassLoader().getResourceAsStream("loader-manifest.json")) {
-            Objects.requireNonNull(inputStream, "loader-manifest.json not found");
-            manifestJson = new String(inputStream.readAllBytes());
-        }
+        final String manifestJson = readManifestJson();
 
         final Loader loader = new LoaderBuilder(librariesDirectory, manifestJson)
             .setLogger(logger)
             .setTempDirectory(tempDirectory)
             .build();
 
-        final Path originalJar = createJarCopy();
+        // we need to relocate the current jar as well, not only dependencies
+        final Path copyOfCurrentJar = createJarCopyOfCurrentJar();
         final Path relocatedJar = createTempJar(tempDirectory);
-        loader.relocateJar(originalJar, relocatedJar);
-        Files.deleteIfExists(originalJar);
+        loader.relocateJar(copyOfCurrentJar, relocatedJar);
+        Files.deleteIfExists(copyOfCurrentJar);
 
         loader.prepare();
         return loader.loadToNewClassLoader(classLoader, List.of(relocatedJar.toUri().toURL()));
     }
 
+    private String readManifestJson() throws IOException {
+        final String fileName = "loader-manifest.json";
+        try (final JarFile jarFile = new JarFile(currentJarPath.toFile())) {
+            final ZipEntry entry = jarFile.getEntry(fileName);
+            if (entry == null)
+                throw new NoSuchFileException(fileName + " not found in " + currentJarPath.toAbsolutePath());
+
+            try (final InputStream inputStream = jarFile.getInputStream(entry)) {
+                return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
+            }
+        }
+    }
+
     @SneakyThrows
-    private Path createJarCopy() {
+    private Path createJarCopyOfCurrentJar() {
         final Path path = createTempJar(tempDirectory);
         Files.copy(
             currentJarPath,
