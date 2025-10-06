@@ -23,7 +23,7 @@ public abstract class LoaderBukkitPluginBootstrap extends JavaPlugin {
             getTempDirectory(),
             getLogger(),
             getMainClass().getName(),
-            Server.class.getClassLoader(),
+            getParentClassLoader(),
             Paths.get(getMainClass().getProtectionDomain().getCodeSource().getLocation().toURI())
         ) {
             @SneakyThrows
@@ -70,6 +70,10 @@ public abstract class LoaderBukkitPluginBootstrap extends JavaPlugin {
     private void die(Throwable e) {
         getLogger().severe("Failed to load the plugin: " + Throwables.getStackTraceAsString(e));
         getServer().shutdown();
+    }
+
+    protected ClassLoader getParentClassLoader() {
+        return Server.class.getClassLoader();
     }
 
     protected abstract Path getLibrariesDirectory();

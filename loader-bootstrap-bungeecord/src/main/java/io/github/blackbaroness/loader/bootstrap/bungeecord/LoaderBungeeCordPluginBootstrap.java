@@ -22,7 +22,7 @@ public abstract class LoaderBungeeCordPluginBootstrap extends Plugin {
             getTempDirectory(),
             getLogger(),
             getMainClass().getName(),
-            ProxyServer.class.getClassLoader(),
+            getParentClassLoader(),
             Paths.get(getMainClass().getProtectionDomain().getCodeSource().getLocation().toURI())
         ) {
             @SneakyThrows
@@ -69,6 +69,10 @@ public abstract class LoaderBungeeCordPluginBootstrap extends Plugin {
     private void die(Throwable e) {
         getLogger().severe("Failed to load the plugin: " + Throwables.getStackTraceAsString(e));
         getProxy().stop(getDescription().getName() + " failed to load");
+    }
+
+    protected ClassLoader getParentClassLoader() {
+        return ProxyServer.class.getClassLoader();
     }
 
     protected abstract Path getLibrariesDirectory();
