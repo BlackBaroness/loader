@@ -43,7 +43,7 @@ public class Loader {
         this.removeUnusedJars = removeUnusedJars;
         this.manifest = loadManifest(manifestJson);
 
-        Utils.removeFilesFromDirectory(tempDirectory, Collections.emptySet());
+        LoaderUtils.removeFilesFromDirectory(tempDirectory, Collections.emptySet());
         Files.createDirectories(tempDirectory);
     }
 
@@ -56,7 +56,7 @@ public class Loader {
         if (logger != null) logger.info("Loader: creating isolated class loader...");
 
         final URL[] urls = Stream.concat(
-            resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(Utils::toURL),
+            resolvedDependencies.stream().map(Manifest.Dependency::getJarFile).map(LoaderUtils::toURL),
             extraUrls.stream()
         ).toArray(URL[]::new);
 
@@ -83,7 +83,7 @@ public class Loader {
             relocations.put(entry.getKey(), entry.getValue().toString());
         }
 
-        final String relocationsHash = Utils.sha1(relocations);
+        final String relocationsHash = LoaderUtils.sha1(relocations);
         final JsonArray dependenciesArray = root.getArray("dependencies");
         final Set<Manifest.Dependency> dependencies = new LinkedHashSet<>(dependenciesArray.size());
         for (int i = 0; i < dependenciesArray.size(); i++) {
@@ -146,7 +146,7 @@ public class Loader {
         }
 
         final String expectedHash = Files.readString(dependency.getJarSha1File());
-        final String actualHash = Utils.sha1(dependency.getJarFile());
+        final String actualHash = LoaderUtils.sha1(dependency.getJarFile());
         if (!expectedHash.equals(actualHash)) {
             downloadDependency(dependency);
         }
@@ -176,15 +176,15 @@ public class Loader {
     @SneakyThrows
     private void downloadDependency(Manifest.Dependency dependency, String repository) {
         // check is repository has a valid jar
-        final String remoteHash = Utils.downloadString(httpClient, dependency.toJarSha1HttpUrl(repository)).trim().split(" ")[0];
+        final String remoteHash = LoaderUtils.downloadString(httpClient, dependency.toJarSha1HttpUrl(repository)).trim().split(" ")[0];
         if (!remoteHash.equals(dependency.getSha1()))
             throw new IllegalStateException("Repository " + repository + " returned invalid sha1 '" + remoteHash + "' for dependency " + dependency);
 
         // download a new jar and validate it
         final Path temporaryFile = createTempFile(dependency.getGroupId(), dependency.getArtifactId());
         final String downloadUrl = dependency.toJarHttpUrl(repository);
-        Utils.downloadFile(downloadUrl, temporaryFile, httpClient);
-        if (!Objects.equals(Utils.sha1(temporaryFile), remoteHash))
+        LoaderUtils.downloadFile(downloadUrl, temporaryFile, httpClient);
+        if (!Objects.equals(LoaderUtils.sha1(temporaryFile), remoteHash))
             throw new IllegalStateException("File " + temporaryFile.toAbsolutePath() + " downloaded from " + downloadUrl + " to resolve " + dependency + " has invalid sha1");
 
         // perform relocation
@@ -192,11 +192,11 @@ public class Loader {
         Files.deleteIfExists(temporaryFile);
 
         // save new checksum
-        Files.writeString(dependency.getJarSha1File(), Utils.sha1(dependency.getJarFile()));
+        Files.writeString(dependency.getJarSha1File(), LoaderUtils.sha1(dependency.getJarFile()));
     }
 
     private void removeUnusedJars(Set<Manifest.Dependency> resolvedDependencies) {
-        Utils.removeFilesFromDirectory(
+        LoaderUtils.removeFilesFromDirectory(
             directory,
             resolvedDependencies.stream()
                 .flatMap(it -> Stream.of(it.getJarFile(), it.getJarSha1File()))

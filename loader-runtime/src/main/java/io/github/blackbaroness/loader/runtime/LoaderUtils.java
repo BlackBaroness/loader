@@ -5,6 +5,7 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URI;
 import java.net.URL;
 import java.net.http.HttpClient;
@@ -21,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 @UtilityClass
-class Utils {
+public class LoaderUtils {
 
     private final char[] hexArray = "0123456789abcdef".toCharArray();
 
@@ -135,6 +136,18 @@ class Utils {
                 return FileVisitResult.CONTINUE;
             }
         });
+    }
+
+    @SneakyThrows
+    public void invokeMethod(Object instance, String name) {
+        final Method method = instance.getClass().getDeclaredMethod(name);
+        if (method.canAccess(instance)) {
+            method.invoke(instance);
+        } else {
+            method.setAccessible(true);
+            method.invoke(instance);
+            method.setAccessible(false);
+        }
     }
 
     private MessageDigest createSha1Digest() {

@@ -2,19 +2,21 @@ package io.github.blackbaroness.loader.bootstrap;
 
 import io.github.blackbaroness.loader.runtime.Loader;
 import io.github.blackbaroness.loader.runtime.LoaderBuilder;
+import io.github.blackbaroness.loader.runtime.LoaderUtils;
+import io.github.blackbaroness.loader.runtime.Manifest;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.net.URLClassLoader;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.jar.JarFile;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
@@ -29,7 +31,7 @@ public abstract class LoaderBootstrap {
     private final Path currentJarPath;
 
     @Getter
-    private URLClassLoader createdClassLoader;
+    private ClassLoader createdClassLoader;
 
     @Getter
     private Object mainInstance;
@@ -52,20 +54,17 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     public void invokeMainMethod(String methodName) {
-        final Method method = mainInstance.getClass().getDeclaredMethod(methodName);
-        if (method.canAccess(mainInstance)) {
-            method.invoke(mainInstance);
-        } else {
-            method.setAccessible(true);
-            method.invoke(mainInstance);
-            method.setAccessible(false);
-        }
+        LoaderUtils.invokeMethod(mainInstance, methodName);
     }
 
     protected abstract Object createMainInstance0(Class<?> clazz);
 
+    protected ClassLoader createClassLoader(ClassLoader parent, Collection<URL> extraUrls) {
+        return new ChildFirstClassLoader(extraUrls.toArray(URL[]::new), parent);
+    }
+
     @SneakyThrows
-    private URLClassLoader createClassLoader() {
+    private ClassLoader createClassLoader() {
         final String manifestJson = readManifestJson(currentJarPath);
 
         final Loader loader = new LoaderBuilder(librariesDirectory, manifestJson)
@@ -80,7 +79,17 @@ public abstract class LoaderBootstrap {
         Files.deleteIfExists(copyOfCurrentJar);
 
         loader.prepare();
-        return loader.loadToNewClassLoader(classLoader, List.of(relocatedJar.toUri().toURL()));
+
+        if (logger != null)
+            logger.info("Loader: creating class loader...");
+
+        final Collection<URL> urls = new ArrayList<>();
+        urls.add(relocatedJar.toUri().toURL());
+        for (Manifest.Dependency dependency : loader.getResolvedDependencies()) {
+            urls.add(LoaderUtils.toURL(dependency.getJarFile()));
+        }
+
+        return createClassLoader(classLoader, urls);
     }
 
     private String readManifestJson(Path path) throws IOException {

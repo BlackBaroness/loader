@@ -45,7 +45,7 @@ public class Manifest {
         }
 
         public String toJarHttpUrl(String baseUrl) {
-            return Utils.normalizeUrl(baseUrl) + '/' + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + versionWithClassifier + ".jar";
+            return LoaderUtils.normalizeUrl(baseUrl) + '/' + groupId.replace('.', '/') + "/" + artifactId + "/" + version + "/" + artifactId + "-" + versionWithClassifier + ".jar";
         }
 
         public String toJarSha1HttpUrl(String baseUrl) {
