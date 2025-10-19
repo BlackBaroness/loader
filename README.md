@@ -26,8 +26,8 @@ Bootstraps:
 
 ```kotlin
 dependencies {
-    implementation("io.github.blackbaroness:loader-bootstrap-bungeecord:1.0.0")
-    implementation("io.github.blackbaroness:loader-bootstrap-bukkit:1.0.0")
+    implementation("io.github.blackbaroness:loader-bootstrap-bungeecord:1.3.0")
+    implementation("io.github.blackbaroness:loader-bootstrap-bukkit:1.3.0")
 }
 ```
 
@@ -35,6 +35,6 @@ Gradle plugin:
 
 ```kotlin
 plugins {
-    id("io.github.blackbaroness.loader.plugin") version "1.0.0"
+    id("io.github.blackbaroness.loader.plugin") version "1.3.0"
 }
 ```
