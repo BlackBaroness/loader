@@ -1,5 +1,5 @@
 [versions]
-kotlin = "2.2.20"
+kotlin = "2.2.21"
 asm = "9.9"
 
 [libraries]
@@ -11,5 +11,5 @@ bukkit = { module = "com.destroystokyo.paper:paper-api", version = "1.12.2-R0.1-
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
-lombok = { id = "io.freefair.lombok", version = "9.0.0" }
-publish = { id = "com.vanniktech.maven.publish", version = "0.34.0" }
+lombok = { id = "io.freefair.lombok", version = "9.1.0" }
+publish = { id = "com.vanniktech.maven.publish", version = "0.35.0" }
