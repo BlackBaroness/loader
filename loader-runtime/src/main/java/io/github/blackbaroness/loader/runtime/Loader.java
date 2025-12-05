@@ -12,6 +12,7 @@ import java.net.URLClassLoader;
 import java.net.http.HttpClient;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -68,7 +69,7 @@ public class Loader {
         if (manifest.getRelocations().isEmpty()) {
             // we can avoid using ASM and simply copy the jar
             Files.createDirectories(output.getParent());
-            Files.copy(input, output);
+            Files.copy(input, output, StandardCopyOption.REPLACE_EXISTING);
             return;
         }
 
