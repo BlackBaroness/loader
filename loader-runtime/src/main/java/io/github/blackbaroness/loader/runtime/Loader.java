@@ -65,6 +65,13 @@ public class Loader {
 
     @SneakyThrows
     public void relocateJar(Path input, Path output) {
+        if (manifest.getRelocations().isEmpty()) {
+            // we can avoid using ASM and simply copy the jar
+            Files.createDirectories(output.getParent());
+            Files.copy(input, output);
+            return;
+        }
+
         new JarRelocator(input, output, manifest.getRelocations()).run();
     }
 
