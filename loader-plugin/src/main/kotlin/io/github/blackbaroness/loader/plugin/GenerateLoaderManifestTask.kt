@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.repositories.MavenArtifactRepository
 import org.gradle.api.artifacts.result.DependencyResult
 import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Classpath
@@ -31,7 +32,7 @@ abstract class GenerateLoaderManifestTask : DefaultTask() {
     abstract val relocations: MapProperty<String, String>
 
     @get:Input
-    abstract val overrideRepositories: Property<List<String>>
+    abstract val overrideRepositories: ListProperty<String>
 
     @get:Classpath
     abstract val runtimeLibrary: Property<Configuration>
