@@ -30,11 +30,15 @@ abstract class GenerateLoaderManifestTask : DefaultTask() {
     @get:Input
     abstract val relocations: MapProperty<String, String>
 
+    @get:Input
+    abstract val overrideRepositories: Property<List<String>>
+
     @get:Classpath
     abstract val runtimeLibrary: Property<Configuration>
 
     init {
         relocations.convention(emptyMap())
+        overrideRepositories.convention(emptyList())
     }
 
     @TaskAction
@@ -49,7 +53,7 @@ abstract class GenerateLoaderManifestTask : DefaultTask() {
     }
 
     private fun generateManifest(): Map<String, Any> = mapOf(
-        "repositories" to generateRepositories(),
+        "repositories" to (overrideRepositories.get().takeIf { it.isNotEmpty() } ?: generateRepositories()),
         "dependencies" to generateDependencies(),
         "relocations" to relocations.get()
     )
