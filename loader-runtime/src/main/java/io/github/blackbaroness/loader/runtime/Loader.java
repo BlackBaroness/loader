@@ -27,13 +27,17 @@ public final class Loader {
     }
 
     public List<Path> prepare(Path core) throws IOException {
-        log("Loader: preparing " + dependencies.size() + " dependencies");
-        var classpath = new ArrayList<Path>();
-        if (core != null) classpath.add(resolver.prepareCore(core));
-        classpath.addAll(resolveDependencies());
-        resolver.removeUnusedFiles(classpath);
-        log("Loader: classpath ready");
-        return List.copyOf(classpath);
+        int total = dependencies.size() + (core == null ? 0 : 1);
+        try (var progress = new ProgressReporter(settings.logger(), total)) {
+            var classpath = new ArrayList<Path>();
+            if (core != null) {
+                classpath.add(resolver.prepareCore(core));
+                progress.advance();
+            }
+            classpath.addAll(resolveDependencies(progress));
+            resolver.removeUnusedFiles(classpath);
+            return List.copyOf(classpath);
+        }
     }
 
     private static List<Manifest.Dependency> uniqueDependencies(List<Manifest.Dependency> dependencies) {
@@ -43,12 +47,18 @@ public final class Loader {
     }
 
     @SneakyThrows
-    private List<Path> resolveDependencies() {
+    private List<Path> resolveDependencies(ProgressReporter progress) {
         if (dependencies.isEmpty()) return List.of();
         var executor = Executors.newFixedThreadPool(Math.min(4, dependencies.size()));
         try {
             var tasks = new ArrayList<Callable<Path>>(dependencies.size());
-            for (var dependency : dependencies) tasks.add(() -> resolver.resolve(dependency));
+            for (var dependency : dependencies) {
+                tasks.add(() -> {
+                    Path jar = resolver.resolve(dependency);
+                    progress.advance();
+                    return jar;
+                });
+            }
             var results = new ArrayList<Path>(dependencies.size());
             for (var future : executor.invokeAll(tasks)) results.add(future.get());
             return List.copyOf(results);
@@ -74,7 +84,4 @@ public final class Loader {
         if (interrupted) Thread.currentThread().interrupt();
     }
 
-    private void log(String message) {
-        if (settings.logger() != null) settings.logger().info(message);
-    }
 }
