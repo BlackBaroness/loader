@@ -84,21 +84,38 @@ public final class LoaderPlugin implements Plugin<Project> {
     }
 
     private static GenerateLoaderManifestTask.ArtifactInput artifactInput(ResolvedArtifact artifact) {
-        if (!(artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier module)) {
+        if (!(artifact.getId().getComponentIdentifier() instanceof ModuleComponentIdentifier)) {
             throw new GradleException("runtimeLibrary supports external Maven JARs only: " + artifact.getId());
         }
         if (!"jar".equals(artifact.getExtension())) {
             throw new GradleException("runtimeLibrary requires JARs: " + artifact.getId());
         }
-        return new GenerateLoaderManifestTask.ArtifactInput(mavenPath(module, artifact.getClassifier()), artifact.getFile());
+        return new GenerateLoaderManifestTask.ArtifactInput(mavenPath(artifact), artifact.getFile());
     }
 
-    private static String mavenPath(ModuleComponentIdentifier module, String classifier) {
-        String version = module.getVersion();
-        if (version.endsWith("-SNAPSHOT")) throw new GradleException("Pin an explicit timestamp version for " + module);
+    private static String mavenPath(ResolvedArtifact artifact) {
+        var module = artifact.getModuleVersion().getId();
+        String version = resolvedVersion(artifact);
         String directoryVersion = TIMESTAMPED_SNAPSHOT.matcher(version).replaceFirst("-SNAPSHOT");
-        String suffix = classifier == null ? "" : "-" + classifier;
-        return module.getGroup().replace('.', '/') + "/" + module.getModule() + "/" + directoryVersion
-            + "/" + module.getModule() + "-" + version + suffix + ".jar";
+        return module.getGroup().replace('.', '/') + "/" + module.getName() + "/" + directoryVersion
+            + "/" + artifact.getName() + "-" + version + artifactSuffix(artifact);
+    }
+
+    private static String resolvedVersion(ResolvedArtifact artifact) {
+        String version = artifact.getModuleVersion().getId().getVersion();
+        if (!version.endsWith("-SNAPSHOT")) return version;
+
+        String fileName = artifact.getFile().getName();
+        String prefix = artifact.getName() + "-";
+        String suffix = artifactSuffix(artifact);
+        if (fileName.startsWith(prefix) && fileName.endsWith(suffix)) {
+            String resolved = fileName.substring(prefix.length(), fileName.length() - suffix.length());
+            if (TIMESTAMPED_SNAPSHOT.matcher(resolved).find()) return resolved;
+        }
+        throw new GradleException("Cannot determine the resolved snapshot timestamp: " + artifact.getId());
+    }
+
+    private static String artifactSuffix(ResolvedArtifact artifact) {
+        return (artifact.getClassifier() == null ? "" : "-" + artifact.getClassifier()) + ".jar";
     }
 }

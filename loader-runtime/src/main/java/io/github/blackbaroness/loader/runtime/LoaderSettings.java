@@ -12,6 +12,6 @@ public record LoaderSettings(Path directory, Path tempDirectory, Logger logger, 
     }
 
     public static class Builder {
-        private final boolean removeUnusedJars = true;
+        private boolean removeUnusedJars = true;
     }
 }
