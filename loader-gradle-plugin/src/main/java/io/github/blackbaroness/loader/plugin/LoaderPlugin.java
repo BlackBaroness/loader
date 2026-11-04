@@ -8,6 +8,7 @@ import org.gradle.api.artifacts.Configuration;
 import org.gradle.api.artifacts.ResolvedArtifact;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
+import org.gradle.api.internal.artifacts.repositories.resolver.MavenUniqueSnapshotComponentIdentifier;
 import org.gradle.api.attributes.Bundling;
 import org.gradle.api.attributes.Category;
 import org.gradle.api.attributes.LibraryElements;
@@ -104,6 +105,11 @@ public final class LoaderPlugin implements Plugin<Project> {
     private static String resolvedVersion(ResolvedArtifact artifact) {
         String version = artifact.getModuleVersion().getId().getVersion();
         if (!version.endsWith("-SNAPSHOT")) return version;
+
+        // Cached snapshot files can keep the generic -SNAPSHOT name.
+        if (artifact.getId().getComponentIdentifier() instanceof MavenUniqueSnapshotComponentIdentifier snapshot) {
+            return snapshot.getTimestampedVersion();
+        }
 
         String fileName = artifact.getFile().getName();
         String prefix = artifact.getName() + "-";
