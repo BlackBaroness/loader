@@ -66,9 +66,10 @@ public abstract class LoaderBungeeCordPluginBootstrap extends Plugin {
         }
     }
 
+    @SneakyThrows
     private void die(Throwable e) {
         getLogger().severe("Failed to load the plugin: " + Throwables.getStackTraceAsString(e));
-        getProxy().stop(getDescription().getName() + " failed to load");
+        throw e;
     }
 
     protected ClassLoader getParentClassLoader() {

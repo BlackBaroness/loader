@@ -1,20 +1,19 @@
 package io.github.blackbaroness.loader.bootstrap;
 
+import io.github.blackbaroness.loader.manifest.Manifest;
+import io.github.blackbaroness.loader.manifest.ManifestXml;
 import io.github.blackbaroness.loader.runtime.Loader;
-import io.github.blackbaroness.loader.runtime.LoaderBuilder;
-import io.github.blackbaroness.loader.runtime.LoaderUtils;
-import io.github.blackbaroness.loader.runtime.Manifest;
+import io.github.blackbaroness.loader.runtime.LoaderSettings;
 import lombok.Getter;
 import lombok.SneakyThrows;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.jar.JarFile;
@@ -36,7 +35,8 @@ public abstract class LoaderBootstrap {
     @Getter
     private Object mainInstance;
 
-    public LoaderBootstrap(Path librariesDirectory, Path tempDirectory, Logger logger, String mainClassName, ClassLoader classLoader, Path currentJarPath) {
+    public LoaderBootstrap(Path librariesDirectory, Path tempDirectory, Logger logger, String mainClassName,
+                           ClassLoader classLoader, Path currentJarPath) {
         this.librariesDirectory = librariesDirectory;
         this.tempDirectory = tempDirectory;
         this.logger = logger;
@@ -54,7 +54,22 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     public void invokeMainMethod(String methodName) {
-        LoaderUtils.invokeMethod(mainInstance, methodName);
+        var method = mainInstance.getClass().getDeclaredMethod(methodName);
+        boolean accessible = method.canAccess(mainInstance);
+        try {
+            if (!accessible)
+                method.setAccessible(true);
+            method.invoke(mainInstance);
+        } catch (InvocationTargetException e) {
+            if (e.getCause() instanceof RuntimeException cause)
+                throw cause;
+            if (e.getCause() instanceof Error cause)
+                throw cause;
+            throw e;
+        } finally {
+            if (!accessible)
+                method.setAccessible(false);
+        }
     }
 
     protected abstract Object createMainInstance0(Class<?> clazz);
@@ -65,35 +80,29 @@ public abstract class LoaderBootstrap {
 
     @SneakyThrows
     private ClassLoader createClassLoader() {
-        final String manifestJson = readManifestJson(currentJarPath);
-
-        final Loader loader = new LoaderBuilder(librariesDirectory, manifestJson)
-            .setLogger(logger)
-            .setTempDirectory(tempDirectory)
+        final LoaderSettings settings = LoaderSettings.builder()
+            .directory(librariesDirectory)
+            .logger(logger)
+            .tempDirectory(tempDirectory)
             .build();
 
-        // we need to relocate the current jar as well, not only dependencies
-        final Path copyOfCurrentJar = createJarCopyOfCurrentJar();
-        final Path relocatedJar = createTempJar(tempDirectory);
-        loader.relocateJar(copyOfCurrentJar, relocatedJar);
-        Files.deleteIfExists(copyOfCurrentJar);
+        final Loader loader = new Loader(settings, ManifestXml.read(readManifest(currentJarPath)));
+        final var classpath = loader.prepare(currentJarPath);
 
-        loader.prepare();
-
-        if (logger != null)
+        if (logger != null) {
             logger.info("Loader: creating class loader...");
+        }
 
         final Collection<URL> urls = new ArrayList<>();
-        urls.add(relocatedJar.toUri().toURL());
-        for (Manifest.Dependency dependency : loader.getResolvedDependencies()) {
-            urls.add(LoaderUtils.toURL(dependency.getJarFile()));
+        for (Path jar : classpath) {
+            urls.add(jar.toUri().toURL());
         }
 
         return createClassLoader(classLoader, urls);
     }
 
-    private String readManifestJson(Path path) throws IOException {
-        final String fileName = "loader-manifest.json";
+    private String readManifest(Path path) throws IOException {
+        final String fileName = Manifest.FILE_NAME;
         try (final JarFile jarFile = new JarFile(path.toFile())) {
             final ZipEntry entry = jarFile.getEntry(fileName);
             if (entry == null)
@@ -105,23 +114,4 @@ public abstract class LoaderBootstrap {
         }
     }
 
-    @SneakyThrows
-    private Path createJarCopyOfCurrentJar() {
-        final Path path = createTempJar(tempDirectory);
-        Files.copy(currentJarPath, path, StandardCopyOption.REPLACE_EXISTING);
-        return path;
-    }
-
-    @SneakyThrows
-    private Path createTempJar(Path directory) {
-        final Path path;
-        if (directory == null) {
-            path = Files.createTempFile(null, ".jar");
-        } else {
-            path = Files.createTempFile(directory, null, ".jar");
-        }
-
-        path.toFile().deleteOnExit();
-        return path;
-    }
 }

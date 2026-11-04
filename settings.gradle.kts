@@ -4,8 +4,9 @@ plugins {
 
 rootProject.name = "loader"
 include(
-    "loader-plugin",
+    "loader-gradle-plugin",
     "loader-runtime",
+    "loader-manifest",
     "loader-bootstrap",
     "loader-bootstrap-bungeecord",
     "loader-bootstrap-bukkit",

@@ -11,11 +11,13 @@ repositories {
 
 dependencies {
     api(projects.loaderRuntime)
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.1")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
 }
 
@@ -51,3 +53,7 @@ mavenPublishing {
     }
 }
 
+
+tasks.test {
+    useJUnitPlatform()
+}

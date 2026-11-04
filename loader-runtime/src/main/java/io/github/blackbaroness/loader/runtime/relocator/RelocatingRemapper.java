@@ -13,81 +13,77 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Original file from: https://github.com/lucko/jar-relocator
- * Modifications made by https://github.com/BlackBaroness/loader/.
+ * Original file from https://github.com/lucko/jar-relocator
+ * Modifications made by https://github.com/BlackBaroness/loader
  */
 package io.github.blackbaroness.loader.runtime.relocator;
 
-import lombok.Getter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.Remapper;
 
 import java.util.Collection;
-import java.util.regex.Matcher;
+import java.util.List;
 import java.util.regex.Pattern;
 
-/**
- * Remaps class names and types using defined {@link Relocation} rules.
- */
-@Getter
 final class RelocatingRemapper extends Remapper {
-    private static final Pattern CLASS_PATTERN = Pattern.compile("(\\[*)?L(.+);");
+    private static final Pattern CLASS_DESCRIPTOR = Pattern.compile("(\\[*)L(.+);");
+    private static final Pattern VERSIONED_PATH = Pattern.compile("^(META-INF/versions/\\d+/)(.*)$");
 
-    // https://docs.oracle.com/javase/10/docs/specs/jar/jar.html#multi-release-jar-files
-    private static final Pattern VERSION_PATTERN = Pattern.compile("^(META-INF/versions/\\d+/)(.*)$");
-
-    private final Collection<Relocation> rules;
+    private final List<Relocation> rules;
 
     RelocatingRemapper(Collection<Relocation> rules) {
-        this.rules = rules;
+        super(Opcodes.ASM9);
+        this.rules = List.copyOf(rules);
     }
 
     @Override
     public String map(String name) {
-        String relocatedName = relocate(name, false);
-        if (relocatedName != null) {
-            return relocatedName;
+        if (name.startsWith("META-INF/versions/")) {
+            var versioned = VERSIONED_PATH.matcher(name);
+            if (versioned.matches()) return versioned.group(1) + mapPath(versioned.group(2));
         }
-        return super.map(name);
+        return mapPath(name);
+    }
+
+    private String mapPath(String path) {
+        for (var rule : rules) {
+            if (rule.canRelocatePath(path)) return rule.relocatePath(path);
+        }
+        return path;
+    }
+
+    String mapClassName(String name) {
+        for (var rule : rules) {
+            if (rule.canRelocateClass(name)) return rule.relocateClass(name);
+        }
+        return name;
     }
 
     @Override
-    public Object mapValue(Object object) {
-        if (object instanceof String) {
-            String relocatedName = relocate((String) object, true);
-            if (relocatedName != null) {
-                return relocatedName;
-            }
-        }
-        return super.mapValue(object);
+    public Object mapValue(Object value) {
+        return value instanceof String text ? mapString(text) : super.mapValue(value);
     }
 
-    private String relocate(String name, boolean isStringValue) {
-        String prefix = "";
-        String suffix = "";
-
-        if (isStringValue) {
-            Matcher m = CLASS_PATTERN.matcher(name);
-            if (m.matches()) {
-                prefix = m.group(1) + "L";
-                name = m.group(2);
-                suffix = ";";
+    private String mapString(String value) {
+        if (value.startsWith("L") || value.startsWith("[")) {
+            var descriptor = CLASS_DESCRIPTOR.matcher(value);
+            if (descriptor.matches()) {
+                return descriptor.group(1) + "L" + mapStringName(descriptor.group(2)) + ";";
             }
         }
+        return mapStringName(value);
+    }
 
-        Matcher m = VERSION_PATTERN.matcher(name);
-        if (m.matches()) {
-            prefix = m.group(1);
-            name = m.group(2);
+    private String mapStringName(String value) {
+        if (value.startsWith("META-INF/versions/")) {
+            var versioned = VERSIONED_PATH.matcher(value);
+            if (versioned.matches()) return versioned.group(1) + mapClassOrPath(versioned.group(2));
         }
+        return mapClassOrPath(value);
+    }
 
-        for (Relocation r : this.rules) {
-            if (isStringValue && r.canRelocateClass(name)) {
-                return prefix + r.relocateClass(name) + suffix;
-            } else if (r.canRelocatePath(name)) {
-                return prefix + r.relocatePath(name) + suffix;
-            }
-        }
-
-        return null;
+    private String mapClassOrPath(String value) {
+        String className = mapClassName(value);
+        return className.equals(value) ? mapPath(value) : className;
     }
 }

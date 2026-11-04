@@ -10,15 +10,21 @@ repositories {
 }
 
 dependencies {
-    implementation(libs.nanojson)
-    implementation(libs.asm.main)
-    implementation(libs.asm.commons)
+    api(projects.loaderManifest)
+    implementation(libs.asm)
+    implementation(libs.asm.commons) { isTransitive = false }
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(11)
+        languageVersion = JavaLanguageVersion.of(17)
     }
+}
+
+tasks.test {
+    useJUnitPlatform()
 }
 
 mavenPublishing {
@@ -52,4 +58,3 @@ mavenPublishing {
         }
     }
 }
-

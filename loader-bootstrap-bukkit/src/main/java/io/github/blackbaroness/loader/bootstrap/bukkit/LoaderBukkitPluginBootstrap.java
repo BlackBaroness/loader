@@ -67,9 +67,10 @@ public abstract class LoaderBukkitPluginBootstrap extends JavaPlugin {
         }
     }
 
+    @SneakyThrows
     private void die(Throwable e) {
         getLogger().severe("Failed to load the plugin: " + Throwables.getStackTraceAsString(e));
-        getServer().shutdown();
+        throw e;
     }
 
     protected ClassLoader getParentClassLoader() {
