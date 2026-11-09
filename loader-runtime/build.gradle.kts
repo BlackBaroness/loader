@@ -14,7 +14,7 @@ dependencies {
     implementation(libs.asm)
     implementation(libs.asm.commons) { isTransitive = false }
     testImplementation(libs.junit.jupiter)
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 java {

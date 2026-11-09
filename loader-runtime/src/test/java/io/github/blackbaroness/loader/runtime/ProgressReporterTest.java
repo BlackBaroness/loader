@@ -17,8 +17,8 @@ class ProgressReporterTest {
         assertEquals("Loader: preparing dependencies 0/10 (ETA: -)", ProgressReporter.format(0, 10, 0));
         assertEquals("Loader: preparing dependencies 5/10 (ETA: 5s)", ProgressReporter.format(5, 10, 5_000_000_000L));
         assertEquals("Loader: preparing dependencies 1/2 (ETA: 601s)", ProgressReporter.format(1, 2, 601_000_000_000L));
-        assertEquals("Loader: prepared dependencies 10/10", ProgressReporter.format(10, 10, 10_000_000_000L));
-        assertEquals("Loader: prepared dependencies 0/0", ProgressReporter.format(0, 0, 0));
+        assertEquals("Loader: finished 10/10", ProgressReporter.format(10, 10, 10_000_000_000L));
+        assertEquals("Loader: finished 0/0", ProgressReporter.format(0, 0, 0));
     }
 
     @Test
