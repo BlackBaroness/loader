@@ -31,9 +31,23 @@ final class RelocatingRemapper extends Remapper {
 
     private final List<Relocation> rules;
 
-    RelocatingRemapper(Collection<Relocation> rules) {
-        super(Opcodes.ASM9);
+    @SuppressWarnings("deprecation") // old ASM versions have only that constructor
+    private RelocatingRemapper(Collection<Relocation> rules) {
+        super();
         this.rules = List.copyOf(rules);
+    }
+
+    private RelocatingRemapper(Collection<Relocation> rules, int api) {
+        super(api);
+        this.rules = List.copyOf(rules);
+    }
+
+    static RelocatingRemapper create(Collection<Relocation> rules) {
+        try {
+            return new RelocatingRemapper(rules, Opcodes.ASM9);
+        } catch (NoSuchMethodError ignored) {
+            return new RelocatingRemapper(rules);
+        }
     }
 
     @Override

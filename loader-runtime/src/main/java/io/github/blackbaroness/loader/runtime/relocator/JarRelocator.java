@@ -36,7 +36,7 @@ public final class JarRelocator {
     public JarRelocator(Path input, Path output, Collection<Relocation> relocations) {
         this.input = input.toAbsolutePath();
         this.output = output.toAbsolutePath();
-        this.remapper = new RelocatingRemapper(relocations);
+        this.remapper = RelocatingRemapper.create(relocations);
     }
 
     public JarRelocator(Path input, Path output, Map<String, String> relocations) {

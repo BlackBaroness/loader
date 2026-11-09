@@ -23,7 +23,7 @@ class RelocationTest {
 
     @Test
     void preservesDescriptorsAndMultiReleasePrefixes() {
-        var remapper = new RelocatingRemapper(List.of(new Relocation("com.old", "relocated")));
+        var remapper = RelocatingRemapper.create(List.of(new Relocation("com.old", "relocated")));
         assertEquals("Lrelocated/Type;", remapper.mapValue("Lcom/old/Type;"));
         assertEquals("[[Lrelocated/Type;", remapper.mapValue("[[Lcom/old/Type;"));
         assertEquals("META-INF/versions/17/relocated/Type.class",
@@ -51,7 +51,7 @@ class RelocationTest {
         var rules = new ArrayList<>(List.of(
             new Relocation("com.old", "first"),
             new Relocation("com.old.special", "second")));
-        var remapper = new RelocatingRemapper(rules);
+        var remapper = RelocatingRemapper.create(rules);
         rules.clear();
         assertEquals("first/special/Type", remapper.map("com/old/special/Type"));
         assertEquals("first.special.Type", remapper.mapClassName("com.old.special.Type"));
